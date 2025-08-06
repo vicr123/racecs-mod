@@ -17,6 +17,8 @@ import net.minecraft.server.PlayerManager
 import net.minecraft.text.OrderedText
 import net.minecraft.text.Text
 import net.minecraft.util.Formatting
+import net.minecraft.util.Util
+import kotlin.math.min
 
 @Environment(EnvType.CLIENT)
 class RaceCsScreen(private val client: MinecraftClient, private val manager: ScreenManager) : RaceCSAbstractScreen(Text.literal("RaceCS")) {
@@ -44,14 +46,50 @@ class RaceCsScreen(private val client: MinecraftClient, private val manager: Scr
             .dimensions(280, 70, 100, 20)
             .build()
     private val lock = Any() // Object for synchronization
+    private var nextPageButton = ButtonWidget.builder(Text.literal("→")) {
+        if (currentPage < pageCount() - 1) {
+            currentPage++
+        }
+    }
+        .dimensions(width - 50, 30, 20, 20)
+        .build()
+    private var prevPageButton = ButtonWidget.builder(Text.literal("←")) {
+        if (currentPage > 0) {
+            currentPage--
+        }
+    }
+        .dimensions(width - 80, 30, 20, 20)
+        .build()
+    private var aircsButton = ButtonWidget.builder(Text.literal("aircs.racing")) {
+        Util.getOperatingSystem().open("https://aircs.racing/");
+    }
+        .dimensions(20, height - 40, 200, 20)
+        .build()
+
 
     override fun init() {
         super.init()
 
         registerButton.setPosition(width / 2 - 100, height / 2 + 30)
 
+        // Add pagination buttons
+        nextPageButton.setPosition(width - 50, 30)
+        prevPageButton.setPosition(width - 80, 30)
+        aircsButton.setPosition(20, height - 40)
+
+        this.addDrawableChild(nextPageButton)
+        this.addDrawableChild(prevPageButton)
+        this.addDrawableChild(aircsButton)
+
         manager.buildButtons(this)
         updatePage()
+    }
+
+    fun pageCount(): Int {
+        val cols = (width - 460) / 40
+        val rows = (height - 100) / 20
+        if (cols * rows <= 0) return 1
+        return stations.size / (cols * rows) + 1
     }
 
     override fun render(context: DrawContext?, mouseX: Int, mouseY: Int, delta: Float) {
@@ -175,10 +213,15 @@ class RaceCsScreen(private val client: MinecraftClient, private val manager: Scr
 
             if (width - 460 < 0) return
             val cols = (width - 460) / 40
-            for (i in 0 until stations.size) {
+            val rows = (height - 100) / 20
+
+            var pageSize = cols * rows
+            if (pageSize < 0) pageSize = 0
+
+            for (i in currentPage * pageSize until min(stations.size, (currentPage + 1) * pageSize)) {
                 val station = stations[i]
-                val col = i % cols
-                val row = i / cols
+                val col = (i - currentPage * pageSize) % cols
+                val row = (i - currentPage * pageSize) / cols
 
                 val textColor = if (team != null) {
                     if (user!!.visited.contains(station)) 0x00ff00 else if (team.visited.contains(station)) 0x009000 else 0xffffff
@@ -193,6 +236,15 @@ class RaceCsScreen(private val client: MinecraftClient, private val manager: Scr
                     textColor
                 )
             }
+
+            // Draw page info
+            context?.drawTextWithShadow(
+                textRenderer,
+                Text.literal("${currentPage + 1}/${pageCount()}"),
+                width - 120,
+                35,
+                0xffffff
+            )
         }
     }
 
@@ -224,10 +276,17 @@ class RaceCsScreen(private val client: MinecraftClient, private val manager: Scr
         val triggersNotification = Text.translatable("station.state.triggers_notification").formatted(Formatting.RESET)
         val doesNotTriggerNotification = Text.translatable("station.state.does_not_trigger_notification").formatted(Formatting.RESET)
 
-        for (i in stations.indices) {
+        val rows = (height - 100) / 20
+
+        var pageSize = cols * rows
+        if (pageSize < 0) pageSize = 0
+        val startIndex = currentPage * pageSize
+        val endIndex = minOf(startIndex + pageSize, stations.size)
+
+        for (i in startIndex until endIndex) {
             val station = stations[i]
-            val col = i % cols
-            val row = i / cols
+            val col = (i - startIndex) % cols
+            val row = (i - startIndex) / cols
 
             // Define the area where the station text is
             val x = 400 + 40 * col
@@ -303,5 +362,13 @@ class RaceCsScreen(private val client: MinecraftClient, private val manager: Scr
     override fun resize(client: MinecraftClient?, width: Int, height: Int) {
         super.resize(client, width, height)
         registerButton.setPosition(width / 2 - 100, height / 2 + 30)
+        nextPageButton.setPosition(width - 50, 30)
+        prevPageButton.setPosition(width - 80, 30)
+        aircsButton.setPosition(20, height - 40)
+
+        // Ensure current page is valid
+        if (currentPage >= pageCount()) {
+            currentPage = pageCount() - 1
+        }
     }
 }
