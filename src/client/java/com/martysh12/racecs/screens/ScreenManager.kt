@@ -45,34 +45,29 @@ class ScreenManager(val client: MinecraftClient) {
     }
 
     fun buildButtons(screen: RaceCSAbstractScreen) {
-        val raceButton = ButtonWidget.builder(Text.translatable("screen.race"), ::openRacePage).build()
-        val aircsButton = ButtonWidget.builder(Text.translatable("screen.map.aircs"), ::openAircsPage).build()
-        val sqtrButton = ButtonWidget.builder(Text.translatable("screen.map.sqtr"), ::openSqtrPage).build()
-        val cly1Button = ButtonWidget.builder(Text.translatable("screen.map.cly1"), ::openCly1Page).build()
-        val cly2Button = ButtonWidget.builder(Text.translatable("screen.map.cly2"), ::openCly2Page).build()
-
         val totalButtons = 5
         val screenWidth = client.window.scaledWidth
         val buttonWidth = screenWidth / totalButtons
+        val raceButton = ButtonWidget.builder(Text.translatable("screen.race"), ::openRacePage)
+            .dimensions(0, 0, buttonWidth, 20)
+            .build()
+        val aircsButton = ButtonWidget.builder(Text.translatable("screen.map.aircs"), ::openAircsPage)
+            .dimensions(buttonWidth, 0, buttonWidth, 20)
+            .build()
+        val sqtrButton = ButtonWidget.builder(Text.translatable("screen.map.sqtr"), ::openSqtrPage)
+            .dimensions(buttonWidth * 2, 0, buttonWidth, 20)
+            .build()
+        val cly1Button = ButtonWidget.builder(Text.translatable("screen.map.cly1"), ::openCly1Page)
+            .dimensions(buttonWidth * 3, 0, buttonWidth, 20)
+            .build()
+        val cly2Button = ButtonWidget.builder(Text.translatable("screen.map.cly2"), ::openCly2Page)
+            .dimensions(buttonWidth * 4, 0, buttonWidth, 20)
+            .build()
 
-        raceButton.setPosition(0, 0)
-        raceButton.setDimensions(buttonWidth, 20)
         screen.addButtonChild(raceButton)
-
-        aircsButton.setPosition(buttonWidth, 0)
-        aircsButton.setDimensions(buttonWidth, 20)
         screen.addButtonChild(aircsButton)
-
-        sqtrButton.setPosition(buttonWidth * 2, 0)
-        sqtrButton.setDimensions(buttonWidth, 20)
         screen.addButtonChild(sqtrButton)
-
-        cly1Button.setPosition(buttonWidth * 3, 0)
-        cly1Button.setDimensions(buttonWidth, 20)
         screen.addButtonChild(cly1Button)
-
-        cly2Button.setPosition(buttonWidth * 4, 0)
-        cly2Button.setDimensions(buttonWidth, 20)
         screen.addButtonChild(cly2Button)
     }
 
