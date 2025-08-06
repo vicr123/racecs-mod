@@ -29,6 +29,7 @@ public class RaceCSWebsocketClient extends WebSocketClient {
         // Start downloading stations & teams only when we connect successfully to the websocket
         TeamManager.downloadTeams();
         StationManager.downloadStations();
+        UserManager.downloadUsers();
     }
 
     @Override
@@ -98,6 +99,9 @@ public class RaceCSWebsocketClient extends WebSocketClient {
             }
             default -> RaceCS.logger.warn("Unknown message type \"{}\", with message {}", type, message);
         }
+
+        for (EventListener eventListener : eventListeners)
+            eventListener.onEvent();
     }
 
     @Override
@@ -131,5 +135,7 @@ public class RaceCSWebsocketClient extends WebSocketClient {
         default void onCompletionTeam(String player, String team, String teamId, int place) {}
         default void onTeamRename(String teamId, String name) {}
         default void onTeaming(List<Team> teams) {}
+
+        default void onEvent() {}
     }
 }

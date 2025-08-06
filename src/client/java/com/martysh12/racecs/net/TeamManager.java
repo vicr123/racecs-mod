@@ -61,6 +61,40 @@ public class TeamManager {
             RaceCS.logger.info("Teaming event, received {} teams", teamList.size());
             teams = teamList;
         }
+
+        @Override
+        public void onVisitation(String username, java.util.UUID uuid, String stationShortCode, String teamId) {
+            var team = getTeamById(teamId);
+            if (team == null) {
+                RaceCS.logger.error("Team {} was visited by unknown user {}", teamId, uuid);
+                return;
+            }
+
+            team.visited.add(stationShortCode);
+        }
+
+        @Override
+        public void onCompletionPartial(String player, String teamName, String teamId, int remaining) {
+            var team = getTeamById(teamId);
+            if (team == null) {
+                RaceCS.logger.error("Unknown team ID {} was completed partially by {}", teamId, player);
+                return;
+            }
+
+            team.returned.add(player);
+        }
+
+        @Override
+        public void onCompletionTeam(String player, String teamName, String teamId, int place) {
+            var team = getTeamById(teamId);
+            if (team == null) {
+                RaceCS.logger.error("Unknown team ID {} was completed fully by {}", teamId, player);
+                return;
+            }
+
+            team.returned.add(player);
+            team.place = place;
+        }
     };
 
     public static RaceCSWebsocketClient.EventListener getEventListener() {
@@ -130,5 +164,13 @@ public class TeamManager {
 
     public static int getNumberOfTeams() {
         return teams.size();
+    }
+
+    public static boolean isTeamRace() {
+        return getNumberOfTeams() != 0;
+    }
+
+    public static List<Team> getTeams() {
+        return List.copyOf(teams);
     }
 }

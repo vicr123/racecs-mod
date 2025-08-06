@@ -3,6 +3,7 @@ package com.martysh12.racecs.net;
 import com.martysh12.racecs.RaceCS;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -35,5 +36,9 @@ public class StationManager {
 
     public static String getStationFullName(String shortName) {
         return stations.get(shortName);
+    }
+
+    public static List<String> getStations() {
+        return List.copyOf(stations.keySet());
     }
 }

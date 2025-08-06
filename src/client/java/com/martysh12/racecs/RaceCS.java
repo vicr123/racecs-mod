@@ -1,12 +1,16 @@
 package com.martysh12.racecs;
 
-import com.martysh12.racecs.net.RaceCSWebsocketClient;
-import com.martysh12.racecs.net.StationManager;
-import com.martysh12.racecs.net.APIUtils;
+import com.martysh12.racecs.net.*;
 import com.martysh12.racecs.gui.toast.ToastLauncher;
-import com.martysh12.racecs.net.TeamManager;
+import com.martysh12.racecs.screens.RaceCsScreen;
+import com.martysh12.racecs.screens.ScreenManager;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.util.InputUtil;
+import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,10 +42,22 @@ public class RaceCS implements ClientModInitializer {
     private static ToastLauncher toastLauncher;
     private static RaceCSWebsocketClient websocketClient;
 
+    private KeyBinding raceButton;
+    private boolean raceButtonPressed = false;
+
+    private static ScreenManager screenManager = null;
+
     @Override
     public void onInitializeClient() {
         // Wait until MinecraftClient initialises (see MinecraftClientMixin.onInit)
         if (INSTANCE == null) {
+            raceButton = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                    "key.racecs.open_screen", // Translation key
+                    InputUtil.Type.KEYSYM,
+                    GLFW.GLFW_KEY_APOSTROPHE, // The ' key
+                    "category.racecs.main" // Category translation key
+            ));
+
             INSTANCE = this;
             return;
         }
@@ -54,6 +70,20 @@ public class RaceCS implements ClientModInitializer {
 
         // Set up the websocket stuff
         new Thread(reconnector, "Reconnector Thread").start();
+
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            if (raceButtonPressed && !raceButton.isPressed()) {
+                raceButtonPressed = false;
+            } else if (!raceButtonPressed && raceButton.isPressed()) {
+                raceButtonPressed = true;
+
+                if (screenManager == null) {
+                    screenManager = new ScreenManager(client);
+                    websocketClient.addEventListener(screenManager.getEventListener());
+                }
+                screenManager.openScreen();
+            }
+        });
     }
 
     private static void createWebsocketClient() {
@@ -65,8 +95,12 @@ public class RaceCS implements ClientModInitializer {
         websocketClient.connect();
 
         websocketClient.addEventListener(TeamManager.getEventListener());
+        websocketClient.addEventListener(UserManager.getEventListener());
         websocketClient.addEventListener(toastLauncher.getEventListener());
         websocketClient.addEventListener(eventListener);
+        if (screenManager != null) {
+            websocketClient.addEventListener(screenManager.getEventListener());
+        }
     }
 
     private static class Reconnector implements Runnable {

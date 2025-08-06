@@ -77,4 +77,35 @@ public class APIUtils {
 
         return teams;
     }
+
+    public static @Nullable Map<String, User> getUsers() {
+        HttpResponse<String> response = HTTP.Request.get(URL_PLAYERS)
+                .send();
+
+        if (response == null) {
+            RaceCS.logger.error("Couldn't download players");
+            return null;
+        }
+
+        if (response.statusCode() != 200) {
+            RaceCS.logger.error("Couldn't download players (status code {}), body: {}", response.statusCode(), response.body());
+            return null;
+        }
+
+        if (response.body().length() == 0) {
+            RaceCS.logger.info("Response body length is 0, returning empty map");
+            return new HashMap<>(); // No players
+        }
+
+        JsonObject jsonObject = JsonParser.parseString(response.body()).getAsJsonObject();
+
+        // Time for the boring part, again again
+        Map<String, User> users = new HashMap<>();
+
+        for (Map.Entry<String, JsonElement> entry : jsonObject.entrySet()){
+            users.put(entry.getKey(), User.fromJsonObject(entry.getValue().getAsJsonObject(), entry.getKey()));
+        }
+
+        return users;
+    }
 }
